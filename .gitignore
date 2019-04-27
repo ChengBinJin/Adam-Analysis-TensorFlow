@@ -1,0 +1,6 @@
+src/.idea/
+src/.idea/*.xml
+src/__pycache__
+src/logistic
+src/perceptron
+src/cnn
