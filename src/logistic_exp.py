@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 
 from mnist import MNIST
-from utils import plot_images, make_folders
+from utils import plot_images, make_folders, Logistic
 # from solver import Solver
 
 FLAGS = tf.flags.FLAGS
@@ -13,6 +13,7 @@ tf.flags.DEFINE_bool('is_train', True, 'training or inference mode, default: Tru
 tf.flags.DEFINE_float('learning_rate', 1e-3, 'initial learning rate for optimizer, default: 0.001')
 tf.flags.DEFINE_integer('epochs', 10, 'number of epochs, default: 100')
 tf.flags.DEFINE_integer('print_freq', 100, 'print frequency for loss, default: 100')
+tf.flags.DEFINE_integer('random_seed', 123, 'random seed for python')
 tf.flags.DEFINE_string('load_model', None, 'folder of saved model that you wish to continue training '
                                            '(e.g. 20190427-1109), default: None')
 
@@ -23,8 +24,7 @@ def main(_):
     optimizer_options = ['SGDNesterov', 'Adagrad', 'RMSProp', 'AdaDelta', 'Adam', 'AdaMax']
     dropout_options = [False, True]
 
-    # tf.train.MomentumOptimizer(learning_rate=FLAGS.learning_rate, momentum=0.99, name='SGDNesterov', use_nesterov=True)
-    # model = Model()
+    model = Logistic()
     # solver = Solver(model)
 
     data = MNIST()
