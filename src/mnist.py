@@ -184,7 +184,7 @@ class MNIST:
 
         return x_batch, y_batch, y_batch_cls
 
-    def info(self):
+    def info(self, show_img=False):
         print("Size of:")
         print("- Training-set:\t\t{}".format(self.num_train))
         print("- Validataion-set:\t{}".format(self.num_val))
@@ -200,7 +200,8 @@ class MNIST:
         print("- num_classes:\t\t{}".format(num_classes))
 
         # Plot the images using our helper-function above.
-        index = np.random.choice(self.num_test, size=9, replace=False)
-        plot_images(images=self.x_test[index], cls_true=self.y_test_cls[index])
+        if show_img:
+            index = np.random.choice(self.num_test, size=9, replace=False)
+            plot_images(images=self.x_test[index], cls_true=self.y_test_cls[index])
 
 ########################################################################
