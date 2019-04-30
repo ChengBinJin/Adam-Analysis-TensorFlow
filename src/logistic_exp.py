@@ -1,4 +1,5 @@
 import os
+import logging
 import tensorflow as tf
 from datetime import datetime
 
@@ -20,6 +21,36 @@ tf.flags.DEFINE_string('load_model', None, 'folder of saved model that you wish 
                                            '(e.g. 20190427-1109), default: None')
 
 
+logger = logging.getLogger(__name__)  # logger
+logger.setLevel(logging.INFO)
+
+
+def init_logger(log_dir):
+    formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+
+    # file handler
+    file_handler = logging.FileHandler(os.path.join(log_dir, 'main.log'))
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.INFO)
+
+    # stream handler
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+
+    # add handlers
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+
+    logger.info('gpu_index: {}'.format(FLAGS.gpu_index))
+    logger.info('model: {}'.format(FLAGS.model))
+    logger.info('batch_size: {}'.format(FLAGS.batch_size))
+    logger.info('is_train: {}'.format(FLAGS.is_train))
+    logger.info('learning_rate: {}'.format(FLAGS.learning_rate))
+    logger.info('epochs: {}'.format(FLAGS.epochs))
+    logger.info('print_freq: {}'.format(FLAGS.print_freq))
+    logger.info('random_seed: {}'.format(FLAGS.random_seed))
+    logger.info('load_model: {}'.format(FLAGS.load_model))
+
 def main(_):
     os.environ["CUDA_VISIBLE_DEVICES"] = FLAGS.gpu_index
 
@@ -36,15 +67,16 @@ def main(_):
     model_dir, log_dir = make_folders(is_train=FLAGS.is_train,
                                       base=FLAGS.model,
                                       cur_time=cur_time)
+    init_logger(log_dir=log_dir)
 
     if FLAGS.model.lower() == 'logistic':
         # Initialize dataset and print info
-        data = MNIST()
-        data.info()  # print basic information
+        data = MNIST(log_dir=log_dir)
+        data.info(use_logging=True if FLAGS.is_train else False)  # print basic information
     elif FLAGS.model.lower() == 'neural_network' or FLAGS.model.lower() == 'cnn':
         # Initialize dataset and print info
-        data = MNIST()
-        data.info()  # print basic information
+        data = MNIST(log_dir=log_dir)
+        data.info(use_logging=True if FLAGS.is_train else False)  # print basic information
     else:
         raise NotImplementedError
 
@@ -83,6 +115,8 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
                              use_dropout=dropout,
                              lr=FLAGS.learning_rate,
                              random_seed=FLAGS.random_seed,
+                             is_train=FLAGS.is_train,
+                             log_dir=log_dir,
                              name=mode_name)
 
             # Initialize solver
@@ -111,21 +145,21 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
                     print('Iter: {0:7}, Acc: {1:.3f}, Best Acc: {2:.3f}'.format(iter_time, acc, best_acc))
 
                     if acc > best_acc:
-                        save_model(saver, solver, sub_model_dir, iter_time)
+                        save_model(saver, solver, sub_model_dir, mode_name, iter_time)
                         best_acc = acc
 
-            csvWriter.close()
+            model.release_handles()
             sess.close()
             tf.reset_default_graph()  # To release GPU memory
-
+            csvWriter.close()
 
 
 def test(data, optimizer_options, dropout_options, model_dir):
     print('Hello test mode!')
 
-def save_model(saver, solver, sub_model_dir, iter_time):
+def save_model(saver, solver, sub_model_dir, mode_name, iter_time):
     saver.save(solver.sess, os.path.join(sub_model_dir, 'model'), global_step=iter_time)
-    print(' [*] Model saved! Iter: {}'.format(iter_time))
+    logger.info(' [*] Model saved! Mode: {}, Iter: {}'.format(mode_name, iter_time))
 
 
 if __name__ == '__main__':

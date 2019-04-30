@@ -52,6 +52,8 @@ def make_folders(is_train=True, base=None, cur_time=None):
 
     return model_dir, log_dir
 
+
+
 class CSVWriter(object):
     def __init__(self, path, name):
         self.file = open(os.path.join(path, name) + '.csv', mode='w', newline='')

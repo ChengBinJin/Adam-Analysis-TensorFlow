@@ -23,9 +23,10 @@
 #
 ########################################################################
 
-import numpy as np
-import gzip
 import os
+import gzip
+import logging
+import numpy as np
 from dataset import one_hot_encoded
 from download import download
 
@@ -43,6 +44,26 @@ filename_x_test = "t10k-images-idx3-ubyte.gz"
 filename_y_test = "t10k-labels-idx1-ubyte.gz"
 
 ########################################################################
+
+logger = logging.getLogger(__name__)  # logger
+logger.setLevel(logging.INFO)
+
+
+def init_logger(log_dir):
+    formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+
+    # file handler
+    file_handler = logging.FileHandler(os.path.join(log_dir, 'mnist.log'))
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.INFO)
+
+    # stram handler
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+
+    # add handlers
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
 
 
 class MNIST:
@@ -73,7 +94,7 @@ class MNIST:
     # Number of classes, one class for each of 10 digits.
     num_classes = 10
 
-    def __init__(self, data_dir="../../data/MNIST/"):
+    def __init__(self, data_dir="../../data/MNIST/", log_dir=None):
         """
         Load the MNIST data-set. Automatically downloads the files
         if they do not already exist locally.
@@ -118,6 +139,8 @@ class MNIST:
                                      num_classes=self.num_classes)
         self.y_test = one_hot_encoded(class_numbers=self.y_test_cls,
                                       num_classes=self.num_classes)
+
+        init_logger(log_dir)
 
     def _load_data(self, filename, offset):
         """
@@ -184,20 +207,21 @@ class MNIST:
 
         return x_batch, y_batch, y_batch_cls
 
-    def info(self, show_img=False):
-        print("Size of:")
-        print("- Training-set:\t\t{}".format(self.num_train))
-        print("- Validataion-set:\t{}".format(self.num_val))
-        print("- Test-set:\t\t{}".format(self.num_test))
+    def info(self, show_img=False, use_logging=True):
+        if use_logging:
+            logger.info("Size of:")
+            logger.info("- Training-set:\t\t{}".format(self.num_train))
+            logger.info("- Validataion-set:\t{}".format(self.num_val))
+            logger.info("- Test-set:\t\t{}".format(self.num_test))
 
-        img_size_flat = self.img_size_flat
-        print("- img_size_flat:\t{}".format(img_size_flat))
+            img_size_flat = self.img_size_flat
+            logger.info("- img_size_flat:\t{}".format(img_size_flat))
 
-        img_shape = self.img_shape
-        print("- img_shape:\t\t{}".format(img_shape))
+            img_shape = self.img_shape
+            logger.info("- img_shape:\t\t{}".format(img_shape))
 
-        num_classes = self.num_classes
-        print("- num_classes:\t\t{}".format(num_classes))
+            num_classes = self.num_classes
+            logger.info("- num_classes:\t\t{}".format(num_classes))
 
         # Plot the images using our helper-function above.
         if show_img:
