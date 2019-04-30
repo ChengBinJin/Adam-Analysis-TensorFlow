@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Solver(object):
     def __init__(self, sess, model):
         self.sess = sess
@@ -26,7 +27,7 @@ class Solver(object):
 
         if batch_size:
             num_data = X.shape[0]
-            total_loss, total_acc = 0., 0.
+            total_acc = 0.
 
             i = 0
             while i < num_data:
@@ -39,19 +40,12 @@ class Solver(object):
                     self.model.keep_prob: 1.0
                 }
 
-                loss = self.model.loss
-                acc = self.model.accuracy
-                step_loss, step_acc = self.sess.run([loss, acc], feed_dict=feed)
-
-                total_loss += step_loss * batch_size
+                step_acc = self.sess.run(self.model.accuracy, feed_dict=feed)
                 total_acc += step_acc * batch_size
                 i = j
 
-            total_loss /= num_data
             total_acc /= num_data
-
-            return total_loss, total_acc
-
+            return total_acc
         else:
             feed = {
                 self.model.X: X,
@@ -59,9 +53,5 @@ class Solver(object):
                 self.model.keep_prob: 1.0
             }
 
-            loss = self.model.loss
-            acc = self.model.accuracy
-
-            total_loss, total_acc = self.sess.run([loss, acc], feed_dict=feed)
-
-            return total_loss, total_acc
+            total_acc = self.sess.run(self.model.accuracy, feed_dict=feed)
+            return total_acc

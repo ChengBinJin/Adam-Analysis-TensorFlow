@@ -55,6 +55,7 @@ def main(_):
 
 def train(data, optimizer_options, dropout_options, model_dir, log_dir):
     num_iters = int(round(FLAGS.epochs * data.num_train / FLAGS.batch_size))
+    iters_epoch = int(round(data.num_train / FLAGS.batch_size))
 
     for optimizer in optimizer_options:
         for dropout in dropout_options:
@@ -86,11 +87,12 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
 
             # Initialize solver
             solver = Solver(sess, model)
+            saver = tf.train.Saver(max_to_keep=1)
             tb_writer = tf.summary.FileWriter(sub_log_dir, graph_def=solver.sess.graph_def)
+            csvWriter = CSVWriter(path=log_dir, name=mode_name)
             sess.run(tf.global_variables_initializer())
 
-            csvWriter = CSVWriter(path=log_dir, name=mode_name)
-
+            best_acc = 0.
             for iter_time in range(num_iters):
                 x_batch, _, y_batch_cls = data.random_batch(batch_size=FLAGS.batch_size)
                 _, loss, summary = solver.train(x_batch, y_batch_cls)
@@ -103,6 +105,15 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
                 if iter_time % FLAGS.print_freq == 0:
                     print('{0:7}/{1:7}: Loss: {2:.3f}'.format(iter_time, num_iters, loss))
 
+                # Validation
+                if iter_time % iters_epoch == 0 or iter_time == (num_iters - 1):
+                    acc = solver.evaluate(data.x_val, data.y_val_cls, batch_size=FLAGS.batch_size)
+                    print('Iter: {0:7}, Acc: {1:.3f}, Best Acc: {2:.3f}'.format(iter_time, acc, best_acc))
+
+                    if acc > best_acc:
+                        save_model(saver, solver, sub_model_dir, iter_time)
+                        best_acc = acc
+
             csvWriter.close()
             sess.close()
             tf.reset_default_graph()  # To release GPU memory
@@ -111,6 +122,11 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
 
 def test(data, optimizer_options, dropout_options, model_dir):
     print('Hello test mode!')
+
+def save_model(saver, solver, sub_model_dir, iter_time):
+    saver.save(solver.sess, os.path.join(sub_model_dir, 'model'), global_step=iter_time)
+    print(' [*] Model saved! Iter: {}'.format(iter_time))
+
 
 if __name__ == '__main__':
     tf.app.run()

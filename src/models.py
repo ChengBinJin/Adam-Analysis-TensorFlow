@@ -24,7 +24,7 @@ class Logistic(object):
             # Accuracy etc
             self.y_pred_round = tf.math.round(x=self.y_pred, name='rounded_pred')
             accuracy = tf.equal(tf.cast(x=self.y_pred_round, dtype=tf.int32), tf.cast(x=self.y, dtype=tf.int32))
-            self.accuracy = tf.reduce_mean(tf.cast(x=accuracy, dtype=tf.float32))
+            self.accuracy = tf.reduce_mean(tf.cast(x=accuracy, dtype=tf.float32)) * 100.
 
         self._tensorboard()
 
