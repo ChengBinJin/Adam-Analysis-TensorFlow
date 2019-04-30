@@ -16,9 +16,9 @@ class Solver(object):
         }
         train_op = self.model.train_op
         loss = self.model.loss
-        lr = self.model.cur_lr
+        summary = self.model.summary_op
 
-        return self.sess.run([train_op, loss, lr], feed_dict=feed)
+        return self.sess.run([train_op, loss, summary], feed_dict=feed)
 
     def evaluate(self, X, y, batch_size=None):
         if y.ndim == 1:

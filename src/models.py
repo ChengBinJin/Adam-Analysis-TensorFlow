@@ -6,8 +6,6 @@ class Logistic(object):
         self.cur_lr = None
 
         with tf.variable_scope(self.name):
-
-
             self.X = tf.placeholder(dtype=tf.float32, shape=[None, input_dim], name='X')
             self.y = tf.placeholder(dtype=tf.float32, shape=[None, output_dim], name='y')
             self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
@@ -27,6 +25,8 @@ class Logistic(object):
             self.y_pred_round = tf.math.round(x=self.y_pred, name='rounded_pred')
             accuracy = tf.equal(tf.cast(x=self.y_pred_round, dtype=tf.int32), tf.cast(x=self.y, dtype=tf.int32))
             self.accuracy = tf.reduce_mean(tf.cast(x=accuracy, dtype=tf.float32))
+
+        self._tensorboard()
 
 
     def optimizer_fn(self, optimizer, lr, loss, name='Optimizer'):
@@ -55,3 +55,7 @@ class Logistic(object):
 
             # elif optimizer == 'AdaMax':
                 # return tf.contrib.opt.AdaMaxOptimizer(learning_rate=self.cur_lr).minimize(loss, global_step=global_step)
+
+    def _tensorboard(self):
+        self.summary_op = tf.summary.merge(inputs=[tf.summary.scalar('Loss', self.loss),
+                                                   tf.summary.scalar('Learning_rate', self.cur_lr)])

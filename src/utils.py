@@ -1,6 +1,7 @@
 import os
+import csv
 import matplotlib.pyplot as plt
-from datetime import datetime
+
 
 def plot_images(images, cls_true, dataset="mnist"):
     assert len(images) == len(cls_true) == 9
@@ -35,24 +36,29 @@ def plot_images(images, cls_true, dataset="mnist"):
     plt.pause(2)  # Pause 2 seconds
 
 
-def make_folders(is_train=True, base=None, mode=None, load_model=None):
+def make_folders(is_train=True, base=None, cur_time=None):
     if is_train:
-        if load_model is None:
-            cur_time = datetime.now().strftime("%Y%m%d-%H%M")
-            "%Y%m%d-%H%M"
-            model_dir = os.path.join(base, '{}'.format(cur_time), mode, 'model')
-            if not os.path.isdir(model_dir):
-                os.makedirs(model_dir)
-        else:
-            cur_time = load_model
-            model_dir = os.path.join(base, '{}'.format(cur_time), mode, 'model')
+        model_dir = os.path.join(base, 'model', '{}'.format(cur_time))
+        log_dir = os.path.join(base, 'logs', '{}'.format(cur_time))
 
-        log_dir = os.path.join(base, '{}'.format(cur_time), mode, 'logs').format(cur_time)
+        if not os.path.isdir(model_dir):
+            os.makedirs(model_dir)
+
         if not os.path.isdir(log_dir):
             os.makedirs(log_dir)
-
     else:
-        model_dir = os.path.join(base, '{}'.format(load_model), mode, 'model')
-        log_dir = os.path.join(base, '{}'.format(load_model), mode, 'logs')
+        model_dir = os.path.join(base, 'model', '{}'.format(cur_time))
+        log_dir = os.path.join(base, 'logs', '{}'.format(cur_time))
 
     return model_dir, log_dir
+
+class CSVWriter(object):
+    def __init__(self, path, name):
+        self.file = open(os.path.join(path, name) + '.csv', mode='w', newline='')
+        self.writer = csv.writer(self.file, delimiter=',')
+
+    def update(self, iter_time, loss):
+        self.writer.writerow([iter_time, loss])
+
+    def close(self):
+        self.file.close()
