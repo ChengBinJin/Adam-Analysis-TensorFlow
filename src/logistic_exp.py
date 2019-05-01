@@ -186,14 +186,16 @@ def plot_loss(log_dir, optimizer_options, dropout_options):
             optim_data.append(data)
 
     optim_data = np.asarray(np.transpose(optim_data))
-    print('optim data shape: {}'.format(optim_data.shape))
-
     x = np.arange(optim_data.shape[0])
+
     sns.set()
+    plt.rcParams['figure.figsize'] = (12.0, 8.0)  # set default size of plots
+    plt.rcParams['image.interpolation'] = 'nearest'
 
     plt.plot(x, optim_data)
     plt.legend(names, ncol=2, loc='upper left')
-    plt.show()
+    plt.title('Optimizers with dropout')
+    plt.savefig(os.path.join(log_dir, FLAGS.model + '.png'), bbox_inches='tight', dpi=600)
 
 
 if __name__ == '__main__':
