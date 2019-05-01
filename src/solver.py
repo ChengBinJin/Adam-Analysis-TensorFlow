@@ -21,7 +21,7 @@ class Solver(object):
 
         return self.sess.run([train_op, loss, summary], feed_dict=feed)
 
-    def evaluate(self, X, y, batch_size=None):
+    def evaluate(self, X, y, batch_size=None, is_train=False):
         if y.ndim == 1:
             y = np.expand_dims(y, axis=1)
 
@@ -45,7 +45,6 @@ class Solver(object):
                 i = j
 
             total_acc /= num_data
-            return total_acc
         else:
             feed = {
                 self.model.X: X,
@@ -54,4 +53,10 @@ class Solver(object):
             }
 
             total_acc = self.sess.run(self.model.accuracy, feed_dict=feed)
-            return total_acc
+
+        if is_train:
+            summary = self.sess.run(self.model.train_acc_op, feed_dict={self.model.train_acc: total_acc})
+        else:
+            summary = self.sess.run(self.model.val_acc_op, feed_dict={self.model.val_acc: total_acc})
+
+        return total_acc, summary

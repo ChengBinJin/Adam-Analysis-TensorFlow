@@ -93,69 +93,82 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
     num_iters = int(round(FLAGS.epochs * data.num_train / FLAGS.batch_size))
     iters_epoch = int(round(data.num_train / FLAGS.batch_size))
 
-    # for optimizer in optimizer_options:
-    #     for dropout in dropout_options:
-    #         print('\nOptimizer: {}\tDropout option: {}\n'.format(optimizer, dropout))
-    #
-    #         # Initialize sub folders for multiple models
-    #         mode_name = optimizer + '_' + str(dropout)
-    #         sub_model_dir = os.path.join(model_dir, mode_name)
-    #         sub_log_dir = os.path.join(log_dir, mode_name)
-    #
-    #         if not os.path.isdir(sub_model_dir):
-    #             os.makedirs(sub_model_dir)
-    #
-    #         if not os.path.isdir(sub_log_dir):
-    #             os.makedirs(sub_log_dir)
-    #
-    #         # Fix weight initialization of each model with different optimizers
-    #         tf.set_random_seed(FLAGS.random_seed)
-    #         sess = tf.Session()  # Initialize session
-    #
-    #         # Initialize model
-    #         model = Logistic(input_dim=data.img_size_flat,
-    #                          output_dim=1,
-    #                          optimizer=optimizer,
-    #                          use_dropout=dropout,
-    #                          lr=FLAGS.learning_rate,
-    #                          random_seed=FLAGS.random_seed,
-    #                          is_train=FLAGS.is_train,
-    #                          log_dir=sub_log_dir,
-    #                          name=mode_name)
-    #
-    #         # Initialize solver
-    #         solver = Solver(sess, model)
-    #         saver = tf.train.Saver(max_to_keep=1)
-    #         tb_writer = tf.summary.FileWriter(sub_log_dir, graph_def=solver.sess.graph_def)
-    #         csvWriter = CSVWriter(path=log_dir, name=mode_name)
-    #         sess.run(tf.global_variables_initializer())
-    #
-    #         best_acc = 0.
-    #         for iter_time in range(num_iters):
-    #             x_batch, _, y_batch_cls = data.random_batch(batch_size=FLAGS.batch_size)
-    #             _, loss, summary = solver.train(x_batch, y_batch_cls)
-    #             csvWriter.update(iter_time, loss)
-    #
-    #             # Write to tensorboard
-    #             tb_writer.add_summary(summary, iter_time)
-    #             tb_writer.flush()
-    #
-    #             if iter_time % FLAGS.print_freq == 0:
-    #                 print('{0:7}/{1:7}: Loss: {2:.3f}'.format(iter_time, num_iters, loss))
-    #
-    #             # Validation
-    #             if iter_time % iters_epoch == 0 or iter_time == (num_iters - 1):
-    #                 acc = solver.evaluate(data.x_val, data.y_val_cls, batch_size=FLAGS.batch_size)
-    #                 print('Iter: {0:7}, Acc: {1:.3f}, Best Acc: {2:.3f}'.format(iter_time, acc, best_acc))
-    #
-    #                 if acc > best_acc:
-    #                     save_model(saver, solver, sub_model_dir, mode_name, iter_time)
-    #                     best_acc = acc
-    #
-    #         model.release_handles()
-    #         sess.close()
-    #         tf.reset_default_graph()  # To release GPU memory
-    #         csvWriter.close()
+    for optimizer in optimizer_options:
+        for dropout in dropout_options:
+            print('\nOptimizer: {}\tDropout option: {}\n'.format(optimizer, dropout))
+
+            # Initialize sub folders for multiple models
+            mode_name = optimizer + '_' + str(dropout)
+            sub_model_dir = os.path.join(model_dir, mode_name)
+            sub_log_dir = os.path.join(log_dir, mode_name)
+
+            if not os.path.isdir(sub_model_dir):
+                os.makedirs(sub_model_dir)
+
+            if not os.path.isdir(sub_log_dir):
+                os.makedirs(sub_log_dir)
+
+            # Fix weight initialization of each model with different optimizers
+            tf.set_random_seed(FLAGS.random_seed)
+            sess = tf.Session()  # Initialize session
+
+            # Initialize model
+            model = Logistic(input_dim=data.img_size_flat,
+                             output_dim=1,
+                             optimizer=optimizer,
+                             use_dropout=dropout,
+                             lr=FLAGS.learning_rate,
+                             random_seed=FLAGS.random_seed,
+                             is_train=FLAGS.is_train,
+                             log_dir=sub_log_dir,
+                             name=mode_name)
+
+            # Initialize solver
+            solver = Solver(sess, model)
+            saver = tf.train.Saver(max_to_keep=1)
+            tb_writer = tf.summary.FileWriter(sub_log_dir, graph_def=solver.sess.graph_def)
+            csvWriter = CSVWriter(path=log_dir, name=mode_name)
+            sess.run(tf.global_variables_initializer())
+
+            best_acc = 0.
+            num_epoch = 0
+            for iter_time in range(num_iters):
+                x_batch, _, y_batch_cls = data.random_batch(batch_size=FLAGS.batch_size)
+                _, loss, summary = solver.train(x_batch, y_batch_cls)
+                csvWriter.update(iter_time, loss)
+
+                # Write to tensorboard
+                tb_writer.add_summary(summary, iter_time)
+                tb_writer.flush()
+
+                if iter_time % FLAGS.print_freq == 0:
+                    print('{0:7}/{1:7}: Loss: {2:.3f}'.format(iter_time, num_iters, loss))
+
+                # Validation
+                if iter_time % iters_epoch == 0 or iter_time == (num_iters - 1):
+                    # Evaluate train-batch accuracy
+                    x_batch, _, y_batch_cls = data.random_batch(batch_size=FLAGS.batch_size)
+                    _, train_summary = solver.evaluate(x_batch, y_batch_cls, is_train=True)
+
+                    # Evaluate validation accuracy
+                    val_acc, val_summary = solver.evaluate(data.x_val, data.y_val_cls, batch_size=FLAGS.batch_size)
+
+                    # Write to tensorboard
+                    tb_writer.add_summary(train_summary, num_epoch)
+                    tb_writer.add_summary(val_summary, num_epoch)
+                    tb_writer.flush()
+
+                    print('Iter: {0:7}, Acc: {1:.3f}, Best Acc: {2:.3f}'.format(iter_time, val_acc, best_acc))
+                    num_epoch += 1
+
+                    if val_acc > best_acc:
+                        save_model(saver, solver, sub_model_dir, mode_name, iter_time)
+                        best_acc = val_acc
+
+            model.release_handles()
+            sess.close()
+            tf.reset_default_graph()  # To release GPU memory
+            csvWriter.close()
 
     plot_loss(log_dir, optimizer_options, dropout_options)
 

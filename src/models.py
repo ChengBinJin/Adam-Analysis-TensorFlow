@@ -19,6 +19,9 @@ class Logistic(object):
             self.y = tf.placeholder(dtype=tf.float32, shape=[None, output_dim], name='y')
             self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
+            self.train_acc = tf.placeholder(tf.float32, name='train_acc')
+            self.val_acc = tf.placeholder(tf.float32, name='val_acc')
+
             net = self.X
             if use_dropout:
                 net = tf.nn.dropout(x=net,
@@ -90,6 +93,8 @@ class Logistic(object):
     def _tensorboard(self):
         self.summary_op = tf.summary.merge(inputs=[tf.summary.scalar('Loss', self.loss),
                                                    tf.summary.scalar('Learning_rate', self.cur_lr)])
+        self.train_acc_op = tf.summary.scalar('Acc/train', self.train_acc)
+        self.val_acc_op = tf.summary.scalar('Acc/val', self.val_acc)
 
     def print_activation(self, t, is_train=True):
         if is_train:
