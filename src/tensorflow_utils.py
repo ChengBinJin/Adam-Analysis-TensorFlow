@@ -4,8 +4,8 @@
 # Written by Cheng-Bin Jin
 # Email: sbkim0407@gmail.com
 # ---------------------------------------------------------
-# import os
-# import logging
+import os
+import logging
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.training import moving_averages
