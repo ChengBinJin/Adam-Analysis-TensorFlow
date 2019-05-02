@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 
 class Solver(object):
@@ -60,3 +61,7 @@ class Solver(object):
             summary = self.sess.run(self.model.val_acc_op, feed_dict={self.model.val_acc: total_acc})
 
         return total_acc, summary
+
+    def init(self):
+        self.sess.run(tf.global_variables_initializer())
+

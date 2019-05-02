@@ -128,10 +128,10 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
             saver = tf.train.Saver(max_to_keep=1)
             tb_writer = tf.summary.FileWriter(sub_log_dir, graph_def=solver.sess.graph_def)
             csvWriter = CSVWriter(path=log_dir, name=mode_name)
-            sess.run(tf.global_variables_initializer())
+            solver.init()
 
-            best_acc = 0.
-            num_epoch = 0
+            best_acc, num_epoch = 0., 0
+            # Training process
             for iter_time in range(num_iters):
                 x_batch, _, y_batch_cls = data.random_batch(batch_size=FLAGS.batch_size)
                 _, loss, summary = solver.train(x_batch, y_batch_cls)
@@ -158,12 +158,20 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
                     tb_writer.add_summary(val_summary, num_epoch)
                     tb_writer.flush()
 
-                    print('Iter: {0:7}, Acc: {1:.3f}, Best Acc: {2:.3f}'.format(iter_time, val_acc, best_acc))
                     num_epoch += 1
-
                     if val_acc > best_acc:
+                        logger.info('Acc: {1:.3f}, Best Acc: {2:.3f}'.format(iter_time, val_acc, best_acc))
                         save_model(saver, solver, sub_model_dir, mode_name, iter_time)
                         best_acc = val_acc
+
+            # Test process
+            if load_model(saver, solver, sub_model_dir, mode_name):
+                logger.info(' [*] Load model: {} SUCCESS!'.format(mode_name))
+            else:
+                logger.info(' [!] Load model: {} Failed...'.format(mode_name))
+
+            test_acc, _ = solver.evaluate(data.x_test, data.y_test_cls, batch_size=FLAGS.batch_size)
+            logger.info('Mode name: {}, Test acc: {}'.format(mode_name, test_acc))
 
             model.release_handles()
             sess.close()
@@ -178,6 +186,17 @@ def test(data, optimizer_options, dropout_options, model_dir):
 def save_model(saver, solver, sub_model_dir, mode_name, iter_time):
     saver.save(solver.sess, os.path.join(sub_model_dir, 'model'), global_step=iter_time)
     logger.info(' [*] Model saved! Mode: {}, Iter: {}'.format(mode_name, iter_time))
+
+def load_model(saver, solver, sub_model_dir, mode_name):
+    logger.info(' [*] Readging model: {} checkpoint...'.format(mode_name))
+
+    ckpt = tf.train.get_checkpoint_state(sub_model_dir)
+    if ckpt and ckpt.model_checkpoint_path:
+        ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
+        saver.restore(solver.sess, os.path.join(sub_model_dir, ckpt_name))
+        return True
+    else:
+        return False
 
 
 def plot_loss(log_dir, optimizer_options, dropout_options):
