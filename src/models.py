@@ -3,6 +3,8 @@ import logging
 import numpy as np
 import tensorflow as tf
 
+import tensorflow_utils as tf_utils
+
 
 class Logistic(object):
     def __init__(self, input_dim, output_dim=1, optimizer=None, use_dropout=True, lr=0.001, random_seed=123,
@@ -30,7 +32,8 @@ class Logistic(object):
                                     name='dropout')
                 self.print_activation(net, is_train=self.is_train)
 
-            self.y_pred = tf.layers.dense(inputs=net, units=output_dim, activation=None)
+            # self.y_pred = tf.layers.dense(inputs=net, units=output_dim, activation=None)
+            self.y_pred = tf_utils.linear(net, output_size=output_dim)
             self.print_activation(self.y_pred)
             self.loss = tf.reduce_mean(tf.nn.l2_loss(self.y_pred - self.y))
             self.train_op = self.optimizer_fn(optimizer, lr=lr, loss=self.loss, name=self.name)
