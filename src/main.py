@@ -9,17 +9,18 @@ from datetime import datetime
 
 from mnist import MNIST
 from utils import make_folders, CSVWriter
-from models import Logistic
+from models import Logistic, NeuralNetwork
 from solver import Solver
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_string('gpu_index', '0', 'gpu index if you have multiple gpus, default: 0')
-tf.flags.DEFINE_string('model', 'logistic', 'network model in [logistic|neural_network|cnn]')
+tf.flags.DEFINE_string('model', 'neural_network', 'network model in [logistic|neural_network|cnn]')
 tf.flags.DEFINE_integer('batch_size', 128, 'batch size: default: 128')
 tf.flags.DEFINE_bool('is_train', True, 'training or inference mode, default: True')
 tf.flags.DEFINE_float('learning_rate', 1e-4, 'initial learning rate for optimizer, default: 0.0001')
+tf.flags.DEFINE_float('weight_decay', 1e-4, 'weight decay for model to handle overfitting')
 tf.flags.DEFINE_integer('epochs', 3, 'number of epochs, default: 100')
-tf.flags.DEFINE_integer('print_freq', 100, 'print frequency for loss, default: 100')
+tf.flags.DEFINE_integer('print_freq', 50, 'print frequency for loss, default: 50')
 tf.flags.DEFINE_integer('random_seed', 123, 'random seed for python')
 tf.flags.DEFINE_string('load_model', None, 'folder of saved model that you wish to continue training '
                                            '(e.g. 20190427-1109), default: None')
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)  # logger
 logger.setLevel(logging.INFO)
 
 
-def init_logger(log_dir):
+def init_logger(log_dir, is_train=True):
     formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 
     # file handler
@@ -45,15 +46,27 @@ def init_logger(log_dir):
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
 
-    logger.info('gpu_index: {}'.format(FLAGS.gpu_index))
-    logger.info('model: {}'.format(FLAGS.model))
-    logger.info('batch_size: {}'.format(FLAGS.batch_size))
-    logger.info('is_train: {}'.format(FLAGS.is_train))
-    logger.info('learning_rate: {}'.format(FLAGS.learning_rate))
-    logger.info('epochs: {}'.format(FLAGS.epochs))
-    logger.info('print_freq: {}'.format(FLAGS.print_freq))
-    logger.info('random_seed: {}'.format(FLAGS.random_seed))
-    logger.info('load_model: {}'.format(FLAGS.load_model))
+    if is_train:
+        logger.info('gpu_index: {}'.format(FLAGS.gpu_index))
+        logger.info('model: {}'.format(FLAGS.model))
+        logger.info('batch_size: {}'.format(FLAGS.batch_size))
+        logger.info('is_train: {}'.format(FLAGS.is_train))
+        logger.info('learning_rate: {}'.format(FLAGS.learning_rate))
+        logger.info('epochs: {}'.format(FLAGS.epochs))
+        logger.info('print_freq: {}'.format(FLAGS.print_freq))
+        logger.info('random_seed: {}'.format(FLAGS.random_seed))
+        logger.info('load_model: {}'.format(FLAGS.load_model))
+    else:
+        print('-- gpu_index: {}'.format(FLAGS.gpu_index))
+        print('-- model: {}'.format(FLAGS.model))
+        print('-- batch_size: {}'.format(FLAGS.batch_size))
+        print('-- is_train: {}'.format(FLAGS.is_train))
+        print('-- learning_rate: {}'.format(FLAGS.learning_rate))
+        print('-- epochs: {}'.format(FLAGS.epochs))
+        print('-- print_freq: {}'.format(FLAGS.print_freq))
+        print('-- random_seed: {}'.format(FLAGS.random_seed))
+        print('-- load_model: {}'.format(FLAGS.load_model))
+
 
 def main(_):
     os.environ["CUDA_VISIBLE_DEVICES"] = FLAGS.gpu_index
@@ -71,7 +84,7 @@ def main(_):
     model_dir, log_dir = make_folders(is_train=FLAGS.is_train,
                                       base=FLAGS.model,
                                       cur_time=cur_time)
-    init_logger(log_dir=log_dir)
+    init_logger(log_dir=log_dir, is_train=FLAGS.is_train)
 
     if FLAGS.model.lower() == 'logistic':
         # Initialize dataset and print info
@@ -113,15 +126,28 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
             sess = tf.Session()  # Initialize session
 
             # Initialize model
-            model = Logistic(input_dim=data.img_size_flat,
-                             output_dim=1,
-                             optimizer=optimizer,
-                             use_dropout=dropout,
-                             lr=FLAGS.learning_rate,
-                             random_seed=FLAGS.random_seed,
-                             is_train=FLAGS.is_train,
-                             log_dir=sub_log_dir,
-                             name=mode_name)
+            model = None
+            if FLAGS.model == 'logistic':
+                model = Logistic(input_dim=data.img_size_flat,
+                                 output_dim=1,
+                                 optimizer=optimizer,
+                                 use_dropout=dropout,
+                                 lr=FLAGS.learning_rate,
+                                 random_seed=FLAGS.random_seed,
+                                 is_train=FLAGS.is_train,
+                                 log_dir=sub_log_dir,
+                                 name=mode_name)
+            elif FLAGS.model == 'neural_network':
+                model = NeuralNetwork(input_dim=data.img_size_flat,
+                                      output_dim=[1000, 1000, 10],
+                                      optimizer=optimizer,
+                                      use_dropout=dropout,
+                                      lr=FLAGS.learning_rate,
+                                      weight_decay=FLAGS.weight_decay,
+                                      random_seed=FLAGS.random_seed,
+                                      is_train=FLAGS.is_train,
+                                      log_dir=sub_log_dir,
+                                      name=mode_name)
 
             # Initialize solver
             solver = Solver(sess, model)
@@ -133,9 +159,9 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
             best_acc, num_epoch = 0., 0
             # Training process
             for iter_time in range(num_iters):
-                x_batch, _, y_batch_cls = data.random_batch(batch_size=FLAGS.batch_size)
-                _, loss, summary = solver.train(x_batch, y_batch_cls)
-                csvWriter.update(iter_time, loss)
+                x_batch, y_batch, y_batch_cls = data.random_batch(batch_size=FLAGS.batch_size)
+                _, loss, summary = solver.train(x=x_batch,
+                                                y=y_batch_cls if FLAGS.model == 'logistic' else y_batch)
 
                 # Write to tensorboard
                 tb_writer.add_summary(summary, iter_time)
@@ -143,15 +169,20 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
 
                 if iter_time % FLAGS.print_freq == 0:
                     print('{0:7}/{1:7}: Loss: {2:.3f}'.format(iter_time, num_iters, loss))
+                    csvWriter.update(iter_time, loss)
 
                 # Validation
                 if iter_time % iters_epoch == 0 or iter_time == (num_iters - 1):
                     # Evaluate train-batch accuracy
-                    x_batch, _, y_batch_cls = data.random_batch(batch_size=FLAGS.batch_size)
-                    _, train_summary = solver.evaluate(x_batch, y_batch_cls, is_train=True)
+                    x_batch, y_batch, y_batch_cls = data.random_batch(batch_size=FLAGS.batch_size)
+                    _, train_summary = solver.evaluate(x=x_batch,
+                                                       y=y_batch_cls if FLAGS.model == 'logistic' else y_batch,
+                                                       is_train=True)
 
                     # Evaluate validation accuracy
-                    val_acc, val_summary = solver.evaluate(data.x_val, data.y_val_cls, batch_size=FLAGS.batch_size)
+                    val_acc, val_summary = solver.evaluate(x=data.x_val,
+                                                           y=data.y_val_cls if FLAGS.model == 'logistic' else data.y_val,
+                                                           batch_size=FLAGS.batch_size)
 
                     # Write to tensorboard
                     tb_writer.add_summary(train_summary, num_epoch)
@@ -170,8 +201,10 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
             else:
                 logger.info(' [!] Load model: {} Failed...'.format(mode_name))
 
-            test_acc, _ = solver.evaluate(data.x_test, data.y_test_cls, batch_size=FLAGS.batch_size)
-            logger.info('Mode name: {}, Test acc: {}'.format(mode_name, test_acc))
+            test_acc, _ = solver.evaluate(x=data.x_test,
+                                          y=data.y_test_cls if FLAGS.model == 'logistic' else data.y_test,
+                                          batch_size=FLAGS.batch_size)
+            logger.info('Mode name: {}, Test acc: {}\n'.format(mode_name, test_acc))
 
             model.release_handles()
             sess.close()
@@ -181,14 +214,68 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
     plot_loss(log_dir, optimizer_options, dropout_options)
 
 def test(data, optimizer_options, dropout_options, model_dir):
-    print('Hello test mode!')
+    for optimizer in optimizer_options:
+        for dropout in dropout_options:
+            print('\nOptimizer: {}\tDropout option: {}\n'.format(optimizer, dropout))
+
+            # Initialize sub folders for multiple models
+            mode_name = optimizer + '_' + str(dropout)
+            sub_model_dir = os.path.join(model_dir, mode_name)
+
+            sess = tf.Session()  # Initialize session
+
+            # Initialize model
+            model = None
+            if FLAGS.model == 'logistic':
+                model = Logistic(input_dim=data.img_size_flat,
+                                 output_dim=1,
+                                 optimizer=optimizer,
+                                 use_dropout=dropout,
+                                 lr=FLAGS.learning_rate,
+                                 random_seed=FLAGS.random_seed,
+                                 is_train=FLAGS.is_train,
+                                 log_dir=None,
+                                 name=mode_name)
+            elif FLAGS.model == 'neural_network':
+                model = NeuralNetwork(input_dim=data.img_size_flat,
+                                      output_dim=[1000, 1000, 10],
+                                      optimizer=optimizer,
+                                      use_dropout=dropout,
+                                      lr=FLAGS.learning_rate,
+                                      weight_decay=FLAGS.weight_decay,
+                                      random_seed=FLAGS.random_seed,
+                                      is_train=FLAGS.is_train,
+                                      log_dir=None,
+                                      name=mode_name)
+
+            # Initialize solver
+            solver = Solver(sess, model)
+            saver = tf.train.Saver(max_to_keep=1)
+
+            # Test process
+            if load_model(saver, solver, sub_model_dir, mode_name):
+                print(' [*] Load model: {} SUCCESS!'.format(mode_name))
+            else:
+                print(' [!] Load model: {} Failed...'.format(mode_name))
+
+            test_acc, _ = solver.evaluate(x=data.x_test,
+                                          y=data.y_test_cls if FLAGS.model == 'logistic' else data.y_test,
+                                          batch_size=FLAGS.batch_size)
+            logger.info('Mode name: {}, Test acc: {}\n'.format(mode_name, test_acc))
+
+            sess.close()
+            tf.reset_default_graph()  # To release GPU memory
+
 
 def save_model(saver, solver, sub_model_dir, mode_name, iter_time):
     saver.save(solver.sess, os.path.join(sub_model_dir, 'model'), global_step=iter_time)
     logger.info(' [*] Model saved! Mode: {}, Iter: {}'.format(mode_name, iter_time))
 
-def load_model(saver, solver, sub_model_dir, mode_name):
-    logger.info(' [*] Readging model: {} checkpoint...'.format(mode_name))
+def load_model(saver, solver, sub_model_dir, mode_name, is_train=False):
+    if is_train:
+        logger.info(' [*] Reading model: {} checkpoint...'.format(mode_name))
+    else:
+        print(' [*] Reading model: {} checkpoint...'.format(mode_name))
 
     ckpt = tf.train.get_checkpoint_state(sub_model_dir)
     if ckpt and ckpt.model_checkpoint_path:

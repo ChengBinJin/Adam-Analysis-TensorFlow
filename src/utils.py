@@ -78,6 +78,13 @@ def init_logger(log_dir, name, is_train):
     return logger, file_handler, stream_handler
 
 
+def release_handles(logger, file_handler, stream_handler):
+    file_handler.close()
+    stream_handler.close()
+    logger.removeHandler(file_handler)
+    logger.removeHandler(stream_handler)
+
+
 class CSVWriter(object):
     def __init__(self, path, name):
         self.file = open(os.path.join(path, name) + '.csv', mode='w', newline='')

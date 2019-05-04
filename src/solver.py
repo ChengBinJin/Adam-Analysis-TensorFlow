@@ -22,12 +22,12 @@ class Solver(object):
 
         return self.sess.run([train_op, loss, summary], feed_dict=feed)
 
-    def evaluate(self, X, y, batch_size=None, is_train=False):
+    def evaluate(self, x, y, batch_size=None, is_train=False):
         if y.ndim == 1:
             y = np.expand_dims(y, axis=1)
 
         if batch_size:
-            num_data = X.shape[0]
+            num_data = x.shape[0]
             total_acc = 0.
 
             i = 0
@@ -36,7 +36,7 @@ class Solver(object):
                 j = min(i + batch_size, num_data)
 
                 feed = {
-                    self.model.X: X[i:j, :],
+                    self.model.X: x[i:j, :],
                     self.model.y: y[i:j],
                     self.model.keep_prob: 1.0
                 }
@@ -48,7 +48,7 @@ class Solver(object):
             total_acc /= num_data
         else:
             feed = {
-                self.model.X: X,
+                self.model.X: x,
                 self.model.y: y,
                 self.model.keep_prob: 1.0
             }
