@@ -211,7 +211,7 @@ class MNIST:
         if use_logging:
             logger.info("Size of:")
             logger.info("- Training-set:\t\t{}".format(self.num_train))
-            logger.info("- Validataion-set:\t{}".format(self.num_val))
+            logger.info("- Validataion-set:\t\t{}".format(self.num_val))
             logger.info("- Test-set:\t\t{}".format(self.num_test))
 
             img_size_flat = self.img_size_flat
@@ -226,6 +226,6 @@ class MNIST:
         # Plot the images using our helper-function above.
         if show_img:
             index = np.random.choice(self.num_test, size=9, replace=False)
-            plot_images(images=self.x_test[index], cls_true=self.y_test_cls[index])
+            plot_images(images=self.x_test[index], cls_true=self.y_test_cls[index], smooth=False)
 
 ########################################################################

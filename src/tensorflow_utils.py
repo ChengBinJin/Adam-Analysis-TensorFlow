@@ -14,7 +14,8 @@ def padding2d(x, p_h=1, p_w=1, pad_type='REFLECT', name='pad2d'):
         return tf.pad(x, [[0, 0], [p_h, p_h], [p_w, p_w], [0, 0]], 'REFLECT', name=name)
 
 
-def conv2d(x, output_dim, k_h=5, k_w=5, d_h=2, d_w=2, stddev=0.02, padding='SAME', name='conv2d', is_print=True):
+def conv2d(x, output_dim, k_h=5, k_w=5, d_h=2, d_w=2, stddev=0.02, padding='SAME', name='conv2d', is_print=True,
+           logger=None):
     with tf.variable_scope(name):
         w = tf.get_variable('w', [k_h, k_w, x.get_shape()[-1], output_dim],
                             initializer=tf.truncated_normal_initializer(stddev=stddev))
@@ -25,13 +26,13 @@ def conv2d(x, output_dim, k_h=5, k_w=5, d_h=2, d_w=2, stddev=0.02, padding='SAME
         conv = tf.nn.bias_add(conv, biases)
 
         if is_print:
-            print_activations(conv)
+            print_activations(conv, logger)
 
         return conv
 
 
 def deconv2d(x, k, k_h=3, k_w=3, d_h=2, d_w=2, stddev=0.02, padding_='SAME', output_size=None,
-             name='deconv2d', with_w=False, is_print=True):
+             name='deconv2d', with_w=False, is_print=True, logger=None):
     with tf.variable_scope(name):
         input_shape = x.get_shape().as_list()
 
@@ -52,7 +53,7 @@ def deconv2d(x, k, k_h=3, k_w=3, d_h=2, d_w=2, stddev=0.02, padding_='SAME', out
         deconv = tf.nn.bias_add(deconv, biases)
 
         if is_print:
-            print_activations(deconv)
+            print_activations(deconv, logger)
 
         if with_w:
             return deconv, w, biases
@@ -142,7 +143,7 @@ def instance_norm(x, name='instance_norm', mean=1.0, stddev=0.02, epsilon=1e-5):
         return scale * normalized + offset
 
 
-def n_res_blocks(x, _ops=None, norm_='instance', is_train=True, num_blocks=6, is_print=False):
+def n_res_blocks(x, _ops=None, norm_='instance', is_train=True, num_blocks=6, is_print=True, logger=None):
     output = None
     for idx in range(1, num_blocks+1):
         output = res_block(x, x.get_shape()[3], _ops=_ops, norm_=norm_, is_train=is_train,
@@ -150,7 +151,7 @@ def n_res_blocks(x, _ops=None, norm_='instance', is_train=True, num_blocks=6, is
         x = output
 
     if is_print:
-        print_activations(output)
+        print_activations(output, logger)
 
     return output
 
@@ -184,54 +185,57 @@ def res_block(x, k, _ops=None, norm_='instance', is_train=True, pad_type=None, n
     return output
 
 
-def identity(x, name='identity', is_print=False):
+def identity(x, name='identity', is_print=True, logger=None):
     output = tf.identity(x, name=name)
     if is_print:
-        print_activations(output)
+        print_activations(output, logger)
 
     return output
 
 
-def max_pool_2x2(x, name='max_pool'):
-    return tf.nn.max_pool(value=x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+def max_pool_2x2(x, name='max_pool', is_print=True, logger=None):
+    output = tf.nn.max_pool(value=x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
+    if is_print:
+        print_activations(output, logger)
+    return output
 
 
-def sigmoid(x, name='sigmoid', is_print=False):
+def sigmoid(x, name='sigmoid', is_print=True, logger=None):
     output = tf.nn.sigmoid(x, name=name)
     if is_print:
-        print_activations(output)
+        print_activations(output, logger)
 
     return output
 
 
-def tanh(x, name='tanh', is_print=False):
+def tanh(x, name='tanh', is_print=True, logger=None):
     output = tf.nn.tanh(x, name=name)
     if is_print:
-        print_activations(output)
+        print_activations(output, logger)
 
     return output
 
 
-def relu(x, name='relu', is_print=False):
+def relu(x, name='relu', is_print=True, logger=None):
     output = tf.nn.relu(x, name=name)
     if is_print:
-        print_activations(output)
+        print_activations(output, logger)
 
     return output
 
 
-def lrelu(x, leak=0.2, name='lrelu', is_print=False):
+def lrelu(x, leak=0.2, name='lrelu', is_print=True, logger=None):
     output = tf.maximum(x, leak*x, name=name)
     if is_print:
-        print_activations(output)
+        print_activations(output, logger)
 
     return output
 
 
-def elu(x, name='elu', is_print=False):
+def elu(x, name='elu', is_print=True, logger=None):
     output = tf.nn.elu(x, name=name)
     if is_print:
-        print_activations(output)
+        print_activations(output, logger)
 
     return output
 

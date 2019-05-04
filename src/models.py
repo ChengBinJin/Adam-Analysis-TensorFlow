@@ -28,6 +28,7 @@ def optimizer_fn(optimizer, lr, loss, name='Optimizer'):
             # return tf.contrib.opt.AdaMaxOptimizer(learning_rate=self.cur_lr).minimize(loss, global_step=global_step), cur_lr
 
 
+
 class Logistic(object):
     def __init__(self, input_dim, output_dim=1, optimizer=None, use_dropout=True, lr=0.001, random_seed=123,
                  is_train=True, log_dir=None, name=None):
@@ -145,3 +146,83 @@ class NeuralNetwork(object):
 
     def release_handles(self):
         utils.release_handles(self.logger, self.file_handler, self.stream_handler)
+
+
+    class CNN(object):
+        def __init__(self, input_dim=[32, 32, 3], output_dim=[128, 256, 512, 1000, 10], optimizer=None, use_dropout=True, lr=0.001,
+                     weight_decay=1e-4, random_seed=123, is_train=True, log_dir=None, name=None):
+            self.name = name
+            self.is_train = is_train
+            self.log_dir = log_dir
+            self.cur_lr = None
+            self.logger, self.file_handler, self.stream_handler = utils.init_logger(log_dir=self.log_dir,
+                                                                                    name=self.name,
+                                                                                    is_train=self.is_train)
+
+            with tf.variable_scope(self.name):
+                self.X = tf.placeholder(dtype=tf.float32, shape=[None, *input_dim], name='X')
+                tf_utils.print_activations(self.X, logger=self.logger if self.is_train else None)
+                self.y = tf.placeholder(dtype=tf.float32, shape=[None, output_dim[-1]], name='y')
+                self.y_cls = tf.math.argmax(input=self.y, axis=1)
+                self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
+
+                self.train_acc = tf.placeholder(tf.float32, name='train_acc')
+                self.val_acc = tf.placeholder(tf.float32, name='val_acc')
+
+                net = self.X
+                for idx in range(3):
+                    net = tf_utils.conv2d(x=net,
+                                          output_dim=output_dim[idx],
+                                          d_h=1,
+                                          d_w=1,
+                                          name='conv2d'+str(idx),
+                                          logger=self.logger if self.is_train else None)
+                    net = tf_utils.max_pool_2x2(x=net,
+                                                ksize=[1, 3, 3, 1],
+                                                name='maxpool'+str(idx),
+                                                logger=self.logger if self.is_train else None)
+                    net = tf_utils.relu(x=net,
+                                        name='relu'+str(idx),
+                                        is_print=True,
+                                        logger=self.logger if self.is_train else None)
+
+                    # if use_dropout:
+                    #     net = tf.nn.dropout(x=net,
+                    #                         keep_prob=self.keep_prob,
+                    #                         seed=tf.set_random_seed(random_seed),
+                    #                         name='dropout' + str(idx))
+                    #     tf_utils.print_activations(net, logger=self.logger if self.is_train else None)
+
+                # Last predict layer
+                self.y_pred = tf_utils.linear(net, output_size=output_dim[-1], name='last_fc')
+                tf_utils.print_activations(self.y_pred, logger=self.logger if self.is_train else None)
+
+                # Loss = data loss + regularization term
+                self.data_loss = tf.reduce_sum(
+                    tf.nn.sigmoid_cross_entropy_with_logits(logits=self.y_pred, labels=self.y))
+                self.reg_term = weight_decay * tf.reduce_sum(
+                    [tf.nn.l2_loss(weight) for weight in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)])
+                self.loss = self.data_loss + self.reg_term
+
+                # Optimizer
+                self.train_op, self.cur_lr = optimizer_fn(optimizer, lr=lr, loss=self.loss, name=self.name)
+
+                # Accuracy etc
+                self.y_pred_cls = tf.math.argmax(input=self.y_pred, axis=1)
+                correct_prediction = tf.math.equal(self.y_pred_cls, self.y_cls)
+                self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, dtype=tf.float32)) * 100.
+
+            self._tensorboard()
+            tf_utils.show_all_variables(logger=self.logger if self.is_train else None)
+
+        def _tensorboard(self):
+            self.summary_op = tf.summary.merge(inputs=[tf.summary.scalar('Loss\Total', self.loss),
+                                                       tf.summary.scalar('Loss\Data', self.data_loss),
+                                                       tf.summary.scalar('Loss\Reg', self.reg_term),
+                                                       tf.summary.scalar('Learning_rate', self.cur_lr)])
+
+            self.train_acc_op = tf.summary.scalar('Acc/train', self.train_acc)
+            self.val_acc_op = tf.summary.scalar('Acc/val', self.val_acc)
+
+        def release_handles(self):
+            utils.release_handles(self.logger, self.file_handler, self.stream_handler)

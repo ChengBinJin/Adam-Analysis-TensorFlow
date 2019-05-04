@@ -8,13 +8,14 @@ import tensorflow as tf
 from datetime import datetime
 
 from mnist import MNIST
+from cifar10 import CIFAR10
 from utils import make_folders, CSVWriter
 from models import Logistic, NeuralNetwork
 from solver import Solver
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_string('gpu_index', '0', 'gpu index if you have multiple gpus, default: 0')
-tf.flags.DEFINE_string('model', 'neural_network', 'network model in [logistic|neural_network|cnn]')
+tf.flags.DEFINE_string('model', 'cnn', 'network model in [logistic|neural_network|cnn], default: logistic')
 tf.flags.DEFINE_integer('batch_size', 128, 'batch size: default: 128')
 tf.flags.DEFINE_bool('is_train', True, 'training or inference mode, default: True')
 tf.flags.DEFINE_float('learning_rate', 1e-4, 'initial learning rate for optimizer, default: 0.0001')
@@ -86,21 +87,21 @@ def main(_):
                                       cur_time=cur_time)
     init_logger(log_dir=log_dir, is_train=FLAGS.is_train)
 
-    if FLAGS.model.lower() == 'logistic':
-        # Initialize dataset and print info
+    if FLAGS.model.lower() == 'logistic' or FLAGS.model.lower() == 'neural_network':
+        # Initialize MNIST dataset and print info
         data = MNIST(log_dir=log_dir)
-        data.info(use_logging=True if FLAGS.is_train else False)  # print basic information
-    elif FLAGS.model.lower() == 'neural_network' or FLAGS.model.lower() == 'cnn':
-        # Initialize dataset and print info
-        data = MNIST(log_dir=log_dir)
-        data.info(use_logging=True if FLAGS.is_train else False)  # print basic information
+        data.info(use_logging=True if FLAGS.is_train else False, show_img=True)  # print basic information
+    elif FLAGS.model.lower() == 'cnn':
+        # Initialize CIFAR10 dataset and print info
+        data = CIFAR10(log_dir=log_dir, is_train=FLAGS.is_train)
+        data.info(use_logging=True if FLAGS.is_Train else False, show_img=True, smooth=True)
     else:
         raise NotImplementedError
 
-    if FLAGS.is_train:
-        train(data, optimizer_options, dropout_options, model_dir, log_dir)
-    else:
-        test(data, optimizer_options, dropout_options, model_dir)
+    # if FLAGS.is_train:
+    #     train(data, optimizer_options, dropout_options, model_dir, log_dir)
+    # else:
+    #     test(data, optimizer_options, dropout_options, model_dir)
 
 def train(data, optimizer_options, dropout_options, model_dir, log_dir):
     num_iters = int(round(FLAGS.epochs * data.num_train / FLAGS.batch_size))

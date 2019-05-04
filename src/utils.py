@@ -4,7 +4,7 @@ import csv
 import matplotlib.pyplot as plt
 
 
-def plot_images(images, cls_true, dataset="mnist"):
+def plot_images(images, cls_true, dataset="mnist", class_names=None, smooth=True):
     assert len(images) == len(cls_true) == 9
 
     image_shape = (28, 28)
@@ -16,16 +16,24 @@ def plot_images(images, cls_true, dataset="mnist"):
         raise NotImplementedError("Dataset not considered!")
 
     # Create figure with 3x3 sub-plots.
-    plt.ion()  # Turn the interactive mode on.
     fig, axes = plt.subplots(3, 3)
     fig.subplots_adjust(hspace=0.3, wspace=0.3)
 
     for i, ax in enumerate(axes.flat):
+        # Interpolation type.
+        if smooth:
+            interpolation = 'spline16'
+        else:
+            interpolation = 'nearest'
         # Plot image
-        ax.imshow(images[i].reshape(image_shape), cmap='binary')
+        ax.imshow(images[i].reshape(image_shape), cmap='binary', interpolation=interpolation)
 
         # Show true classes
-        xlabel = "True: {}".format(cls_true[i])
+        xlabel = None
+        if dataset == "cifar10":
+            xlabel = "True: {}".format(class_names[cls_true[i]])
+        elif dataset == "mnist":
+            xlabel = "True: {}".format(cls_true[i])
         ax.set_xlabel(xlabel)
 
         # Remove ticks from the plot.
@@ -34,7 +42,6 @@ def plot_images(images, cls_true, dataset="mnist"):
 
     # Ensure the plot is shown correctly with multiple plots in a single Notebook cell.
     plt.show()
-    plt.pause(2)  # Pause 2 seconds
 
 
 def make_folders(is_train=True, base=None, cur_time=None):
