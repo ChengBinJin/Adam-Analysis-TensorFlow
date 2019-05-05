@@ -67,7 +67,7 @@ def upsampling2d(x, size=(2, 2), name='upsampling2d'):
         return tf.image.resize_nearest_neighbor(x, size=(size[0] * shape[1], size[1] * shape[2]))
 
 
-def linear(x, output_size, bias_start=0.0, with_w=False, name='fc'):
+def linear(x, output_size, bias_start=0.0, with_w=False, name='fc', is_print=True, logger=None):
     shape = x.get_shape().as_list()
 
     with tf.variable_scope(name):
@@ -75,10 +75,15 @@ def linear(x, output_size, bias_start=0.0, with_w=False, name='fc'):
                                  dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
         bias = tf.get_variable(name="bias", shape=[output_size],
                                initializer=tf.constant_initializer(bias_start))
+        output = tf.matmul(x, matrix) + bias
+
+        if is_print:
+            print_activations(output, logger)
+
         if with_w:
-            return tf.matmul(x, matrix) + bias, matrix, bias
+            return output, matrix, bias
         else:
-            return tf.matmul(x, matrix) + bias
+            return output
 
 
 def norm(x, name, _type, _ops, is_train=True):
@@ -193,12 +198,22 @@ def identity(x, name='identity', is_print=True, logger=None):
     return output
 
 
-def max_pool_2x2(x, name='max_pool', is_print=True, logger=None):
-    output = tf.nn.max_pool(value=x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
+def max_pool(x, name='max_pool', ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], is_print=True, logger=None):
+    output = tf.nn.max_pool(value=x, ksize=ksize, strides=strides, padding='SAME', name=name)
     if is_print:
         print_activations(output, logger)
     return output
 
+def dropout(x, keep_prob=0.5, seed=None, name='dropout', is_print=True, logger=None):
+    output = tf.nn.dropout(x=x,
+                           keep_prob=keep_prob,
+                           seed=tf.set_random_seed(seed) if seed else None,
+                           name=name)
+
+    if is_print:
+        print_activations(output, logger)
+
+    return output
 
 def sigmoid(x, name='sigmoid', is_print=True, logger=None):
     output = tf.nn.sigmoid(x, name=name)

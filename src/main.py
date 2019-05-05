@@ -90,7 +90,7 @@ def main(_):
     if FLAGS.model.lower() == 'logistic' or FLAGS.model.lower() == 'neural_network':
         # Initialize MNIST dataset and print info
         data = MNIST(log_dir=log_dir)
-        data.info(use_logging=True if FLAGS.is_train else False, show_img=True)  # print basic information
+        data.info(use_logging=True if FLAGS.is_train else False, show_img=False)  # print basic information
     elif FLAGS.model.lower() == 'cnn':
         # Initialize CIFAR10 dataset and print info
         data = CIFAR10(log_dir=log_dir, is_train=FLAGS.is_train)
@@ -98,10 +98,10 @@ def main(_):
     else:
         raise NotImplementedError
 
-    # if FLAGS.is_train:
-    #     train(data, optimizer_options, dropout_options, model_dir, log_dir)
-    # else:
-    #     test(data, optimizer_options, dropout_options, model_dir)
+    if FLAGS.is_train:
+        train(data, optimizer_options, dropout_options, model_dir, log_dir)
+    else:
+        test(data, optimizer_options, dropout_options, model_dir)
 
 def train(data, optimizer_options, dropout_options, model_dir, log_dir):
     num_iters = int(round(FLAGS.epochs * data.num_train / FLAGS.batch_size))
