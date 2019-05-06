@@ -20,7 +20,7 @@ tf.flags.DEFINE_integer('batch_size', 128, 'batch size: default: 128')
 tf.flags.DEFINE_bool('is_train', True, 'training or inference mode, default: True')
 tf.flags.DEFINE_float('learning_rate', 1e-3, 'initial learning rate for optimizer, default: 0.001')
 tf.flags.DEFINE_float('weight_decay', 1e-4, 'weight decay for model to handle overfitting')
-tf.flags.DEFINE_integer('epochs', 3, 'number of epochs, default: 100')
+tf.flags.DEFINE_integer('epochs', 100, 'number of epochs, default: 100')
 tf.flags.DEFINE_integer('print_freq', 50, 'print frequency for loss, default: 50')
 tf.flags.DEFINE_integer('random_seed', 123, 'random seed for python')
 tf.flags.DEFINE_string('load_model', None, 'folder of saved model that you wish to continue training '
@@ -95,6 +95,7 @@ def main(_):
         # Initialize CIFAR10 dataset and print info
         data = CIFAR10(log_dir=log_dir, is_train=FLAGS.is_train)
         data.info(use_logging=True if FLAGS.is_train else False, show_img=False, smooth=True)
+        data.whitening()  # whitening for preprocessing
     else:
         raise NotImplementedError
 

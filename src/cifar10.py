@@ -102,6 +102,39 @@ class CIFAR10(object):
                                                                           name='cifar10',
                                                                           is_train=is_train)
 
+    def whitening(self):
+        self.x_train, mean, U, S = self.preprocessing(self.x_train)
+        self.x_val = self.preprocessing(self.x_val, mean_val=mean, U_val=U, S_val=S)
+        self.x_test = self.preprocessing(self.x_test, mean_val=mean, U_val=U, S_val=S)
+
+    def preprocessing(self, X, mean_val=None, U_val=None, S_val=None):
+        # Input data matrix X of isze [N x D]
+        X = np.reshape(X, (X.shape[0], -1))
+
+        mean = None
+        if (mean_val is None) or (U_val is None) or (S_val is None):
+            mean = np.mean(X, axis=0)
+            X -= mean  # zero-center the data (important)
+            cov = np.dot(X.T, X) / X.shape[0]  # get the data covariance matrix
+            U, S, V = np.linalg.svd(cov)
+        else:
+            X -= mean_val
+            U, S = U_val, S_val
+
+        Xrot = np.dot(X, U)  # decorrelate the data
+
+        # Whiten the data:
+        # Divide by eigenvalues (which are square roots of the singular values)
+        Xwhite = Xrot / np.sqrt(S + 1e-5)
+
+        # Reshape original shape
+        Xwhite = np.reshape(Xwhite, (Xwhite.shape[0], *self.img_shape))
+
+        if (mean_val is None) or (U_val is None) or (S_val is None):
+            return Xwhite, mean, U, S
+        else:
+            return Xwhite
+
     def info(self, show_img=False, use_logging=True, smooth=True):
         if use_logging:
             self.logger.info("Size of:")
@@ -186,6 +219,7 @@ class CIFAR10(object):
         """
 
         self.x_test, self.x_test_cls = self._load_data(filename="test_batch")
+        # self.x_test_ori = self.x_test.copy()
         self.y_test = one_hot_encoded(class_numbers=self.x_test_cls, num_classes=self.num_classes)
         self.num_test = len(self.x_test)
 
