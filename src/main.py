@@ -10,7 +10,7 @@ from datetime import datetime
 from mnist import MNIST
 from cifar10 import CIFAR10
 from utils import make_folders, CSVWriter
-from models import Logistic, NeuralNetwork
+from models import Logistic, NeuralNetwork, CNN
 from solver import Solver
 
 FLAGS = tf.flags.FLAGS
@@ -18,7 +18,7 @@ tf.flags.DEFINE_string('gpu_index', '0', 'gpu index if you have multiple gpus, d
 tf.flags.DEFINE_string('model', 'cnn', 'network model in [logistic|neural_network|cnn], default: logistic')
 tf.flags.DEFINE_integer('batch_size', 128, 'batch size: default: 128')
 tf.flags.DEFINE_bool('is_train', True, 'training or inference mode, default: True')
-tf.flags.DEFINE_float('learning_rate', 1e-4, 'initial learning rate for optimizer, default: 0.0001')
+tf.flags.DEFINE_float('learning_rate', 1e-3, 'initial learning rate for optimizer, default: 0.001')
 tf.flags.DEFINE_float('weight_decay', 1e-4, 'weight decay for model to handle overfitting')
 tf.flags.DEFINE_integer('epochs', 3, 'number of epochs, default: 100')
 tf.flags.DEFINE_integer('print_freq', 50, 'print frequency for loss, default: 50')
@@ -94,7 +94,7 @@ def main(_):
     elif FLAGS.model.lower() == 'cnn':
         # Initialize CIFAR10 dataset and print info
         data = CIFAR10(log_dir=log_dir, is_train=FLAGS.is_train)
-        data.info(use_logging=True if FLAGS.is_Train else False, show_img=True, smooth=True)
+        data.info(use_logging=True if FLAGS.is_train else False, show_img=False, smooth=True)
     else:
         raise NotImplementedError
 
@@ -149,6 +149,17 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
                                       is_train=FLAGS.is_train,
                                       log_dir=sub_log_dir,
                                       name=mode_name)
+            elif FLAGS.model == 'cnn':
+                model = CNN(input_dim=data.img_shape,
+                            output_dim=[128, 256, 512, 1000, 10],
+                            optimizer=optimizer,
+                            use_dropout=dropout,
+                            lr=FLAGS.learning_rate,
+                            weight_decay=FLAGS.weight_decay,
+                            random_seed=FLAGS.random_seed,
+                            is_train=FLAGS.is_train,
+                            log_dir=sub_log_dir,
+                            name=mode_name)
 
             # Initialize solver
             solver = Solver(sess, model)

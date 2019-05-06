@@ -71,6 +71,7 @@ class CIFAR10(object):
 
         # Number of channels in each image, 3 channels: Red, Green, Blue.
         self.num_channels = 3
+        self.img_shape = (self.img_size, self.img_size, self.num_channels)
 
         # Length of an image when flattened to a 1-dim array.
         self.img_size_flat = self.img_size * self.img_size * self.num_channels
@@ -101,6 +102,22 @@ class CIFAR10(object):
                                                                           name='cifar10',
                                                                           is_train=is_train)
 
+        # General attribute
+        self.num_train = self._num_images_train
+        self.x_train = self.images_train
+        self.y_train = self.labels_train
+        self.y_train_cls = self.cls_train
+
+        self.num_val = self._num_images_validation
+        self.x_val = self.images_validation
+        self.y_val = self.labels_validation
+        self.y_val_cls = self.cls_validation
+
+        self.num_test = self._num_images_test
+        self.x_test = self.images_test
+        self.y_test = self.labels_test
+        self.y_test_cls = self.cls_test
+
     def info(self, show_img=False, use_logging=True, smooth=True):
         if use_logging:
             self.logger.info("Size of:")
@@ -109,7 +126,7 @@ class CIFAR10(object):
             self.logger.info("- Test-set:\t\t{}".format(self._num_images_test))
 
             self.logger.info("- image_size_flat: \t{}".format(self.img_size_flat))
-            self.logger.info("- image_size: \t\t{}".format(self.images_train[0].shape))
+            self.logger.info("- image_size: \t\t{}".format(self.img_shape))
             self.logger.info("- num_classes:\t\t{}".format(self.num_classes))
 
             self.logger.info("- CIFAR-10 class names: {}".format(self.class_names))
@@ -169,9 +186,9 @@ class CIFAR10(object):
 
         # Split into validation data
         self._num_images_validation = int(round(self._num_images_train * 0.2))
-        self.images_validation = self.images_train[-self._num_images_validation]
-        self.cls_validation = self.cls_train[-self._num_images_validation]
-        self.labels_validation = self.labels_train[-self._num_images_validation]
+        self.images_validation = self.images_train[-self._num_images_validation:]
+        self.cls_validation = self.cls_train[-self._num_images_validation:]
+        self.labels_validation = self.labels_train[-self._num_images_validation:]
 
         self._num_images_train -= self._num_images_validation
         self.images_train = self.images_train[:self._num_images_train]

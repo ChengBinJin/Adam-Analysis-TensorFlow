@@ -66,6 +66,12 @@ def upsampling2d(x, size=(2, 2), name='upsampling2d'):
         shape = x.get_shape().as_list()
         return tf.image.resize_nearest_neighbor(x, size=(size[0] * shape[1], size[1] * shape[2]))
 
+def flatten(x, name='flatten', data_format='channels_last', is_print=True, logger=None):
+    output = tf.layers.flatten(inputs=x, name=name, data_format=data_format)
+    if is_print:
+        print_activations(output, logger)
+    return output
+
 
 def linear(x, output_size, bias_start=0.0, with_w=False, name='fc', is_print=True, logger=None):
     shape = x.get_shape().as_list()
