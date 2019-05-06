@@ -102,28 +102,12 @@ class CIFAR10(object):
                                                                           name='cifar10',
                                                                           is_train=is_train)
 
-        # General attribute
-        self.num_train = self._num_images_train
-        self.x_train = self.images_train
-        self.y_train = self.labels_train
-        self.y_train_cls = self.cls_train
-
-        self.num_val = self._num_images_validation
-        self.x_val = self.images_validation
-        self.y_val = self.labels_validation
-        self.y_val_cls = self.cls_validation
-
-        self.num_test = self._num_images_test
-        self.x_test = self.images_test
-        self.y_test = self.labels_test
-        self.y_test_cls = self.cls_test
-
     def info(self, show_img=False, use_logging=True, smooth=True):
         if use_logging:
             self.logger.info("Size of:")
-            self.logger.info("- Training-set:\t\t{}".format(self._num_images_train))
-            self.logger.info("- Validation-set:\t\t{}".format(self._num_images_validation))
-            self.logger.info("- Test-set:\t\t{}".format(self._num_images_test))
+            self.logger.info("- Training-set:\t\t{}".format(self.num_train))
+            self.logger.info("- Validation-set:\t\t{}".format(self.num_val))
+            self.logger.info("- Test-set:\t\t{}".format(self.num_test))
 
             self.logger.info("- image_size_flat: \t{}".format(self.img_size_flat))
             self.logger.info("- image_size: \t\t{}".format(self.img_shape))
@@ -132,9 +116,9 @@ class CIFAR10(object):
             self.logger.info("- CIFAR-10 class names: {}".format(self.class_names))
         else:
             print("Size of:")
-            print("- Training-set:\t\t{}".format(self._num_images_train))
-            print("- Validation-set:\t{}".format(self._num_images_validation))
-            print("- Test-set:\t\t{}".format(self._num_images_test))
+            print("- Training-set:\t\t{}".format(self.num_train))
+            print("- Validation-set:\t{}".format(self.num_val))
+            print("- Test-set:\t\t{}".format(self.num_test))
 
             print("- image_size_flat: \t{}".format(self.img_size_flat))
             print("- image_size: \t\t{}".format(self.images_train[0].shape))
@@ -143,8 +127,8 @@ class CIFAR10(object):
             print("- CIFAR-10 class names: {}".format(self.class_names))
 
         if show_img:
-            index = np.random.choice(self._num_images_test, size=9, replace=False)
-            plot_images(images=self.images_test[index], cls_true=self.cls_test[index], dataset='cifar10',
+            index = np.random.choice(self.num_test, size=9, replace=False)
+            plot_images(images=self.x_test[index], cls_true=self.x_test_cls[index], dataset='cifar10',
                         class_names=self.class_names, smooth=smooth)
 
     def _load_training_data(self):
@@ -185,15 +169,15 @@ class CIFAR10(object):
         self.labels_train = one_hot_encoded(class_numbers=self.cls_train, num_classes=self.num_classes)
 
         # Split into validation data
-        self._num_images_validation = int(round(self._num_images_train * 0.2))
-        self.images_validation = self.images_train[-self._num_images_validation:]
-        self.cls_validation = self.cls_train[-self._num_images_validation:]
-        self.labels_validation = self.labels_train[-self._num_images_validation:]
+        self.num_val = int(round(self._num_images_train * 0.2))
+        self.x_val = self.images_train[-self.num_val:]
+        self.y_val_cls = self.cls_train[-self.num_val:]
+        self.y_val = self.labels_train[-self.num_val:]
 
-        self._num_images_train -= self._num_images_validation
-        self.images_train = self.images_train[:self._num_images_train]
-        self.cls_train = self.cls_train[:self._num_images_train]
-        self.labels_train = self.labels_train[:self._num_images_train]
+        self.num_train = self._num_images_train - self.num_val
+        self.x_train = self.images_train[:self._num_images_train]
+        self.y_train_cls = self.cls_train[:self._num_images_train]
+        self.y_train = self.labels_train[:self._num_images_train]
 
     def _load_test_data(self):
         """
@@ -201,9 +185,9 @@ class CIFAR10(object):
         Returns the images, class-numbers and one-hot encoded class-labels.
         """
 
-        self.images_test, self.cls_test = self._load_data(filename="test_batch")
-        self.labels_test = one_hot_encoded(class_numbers=self.cls_test, num_classes=self.num_classes)
-        self._num_images_test = len(self.images_test)
+        self.x_test, self.x_test_cls = self._load_data(filename="test_batch")
+        self.y_test = one_hot_encoded(class_numbers=self.x_test_cls, num_classes=self.num_classes)
+        self.num_test = len(self.x_test)
 
     def random_batch(self, batch_size=32):
         # Number of images in the training-set.
