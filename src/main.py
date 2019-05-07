@@ -2,6 +2,8 @@ import os
 import csv
 import logging
 import numpy as np
+import matplotlib as mpl
+mpl.use('TkAgg')  # or whatever other backend that you want to solve Segmentation fault (core dumped)
 import seaborn as sns
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -18,9 +20,10 @@ tf.flags.DEFINE_string('gpu_index', '0', 'gpu index if you have multiple gpus, d
 tf.flags.DEFINE_string('model', 'cnn', 'network model in [logistic|neural_network|cnn], default: logistic')
 tf.flags.DEFINE_integer('batch_size', 128, 'batch size: default: 128')
 tf.flags.DEFINE_bool('is_train', True, 'training or inference mode, default: True')
+tf.flags.DEFINE_bool('is_whiten', False, 'whitening for CIFAR10 dataset, default: False')
 tf.flags.DEFINE_float('learning_rate', 1e-3, 'initial learning rate for optimizer, default: 0.001')
 tf.flags.DEFINE_float('weight_decay', 1e-4, 'weight decay for model to handle overfitting')
-tf.flags.DEFINE_integer('epochs', 100, 'number of epochs, default: 100')
+tf.flags.DEFINE_integer('epochs', 200, 'number of epochs, default: 200')
 tf.flags.DEFINE_integer('print_freq', 50, 'print frequency for loss, default: 50')
 tf.flags.DEFINE_integer('random_seed', 123, 'random seed for python')
 tf.flags.DEFINE_string('load_model', None, 'folder of saved model that you wish to continue training '
@@ -52,6 +55,7 @@ def init_logger(log_dir, is_train=True):
         logger.info('model: {}'.format(FLAGS.model))
         logger.info('batch_size: {}'.format(FLAGS.batch_size))
         logger.info('is_train: {}'.format(FLAGS.is_train))
+        logger.info('is_whiten: {}'.format(FLAGS.is_whiten))
         logger.info('learning_rate: {}'.format(FLAGS.learning_rate))
         logger.info('epochs: {}'.format(FLAGS.epochs))
         logger.info('print_freq: {}'.format(FLAGS.print_freq))
@@ -62,6 +66,7 @@ def init_logger(log_dir, is_train=True):
         print('-- model: {}'.format(FLAGS.model))
         print('-- batch_size: {}'.format(FLAGS.batch_size))
         print('-- is_train: {}'.format(FLAGS.is_train))
+        print('-- is_whiten: {}'.format(FLAGS.is_whiten))
         print('-- learning_rate: {}'.format(FLAGS.learning_rate))
         print('-- epochs: {}'.format(FLAGS.epochs))
         print('-- print_freq: {}'.format(FLAGS.print_freq))
@@ -95,7 +100,7 @@ def main(_):
         # Initialize CIFAR10 dataset and print info
         data = CIFAR10(log_dir=log_dir, is_train=FLAGS.is_train)
         data.info(use_logging=True if FLAGS.is_train else False, show_img=False, smooth=True)
-        data.whitening()  # whitening for preprocessing
+        data.preprocessing(use_whiten=FLAGS.is_whiten)  # data preprocessing [whiten or subtract_mean]
     else:
         raise NotImplementedError
 

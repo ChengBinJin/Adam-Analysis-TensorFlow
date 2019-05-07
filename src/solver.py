@@ -14,7 +14,7 @@ class Solver(object):
         feed = {
             self.model.X: x,
             self.model.y: y,
-            self.model.keep_prob: 0.5
+            self.model.keep_prob: 0.8
         }
         train_op = self.model.train_op
         loss = self.model.loss

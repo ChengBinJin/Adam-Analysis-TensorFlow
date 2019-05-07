@@ -101,14 +101,30 @@ class CIFAR10(object):
         self.logger, self.file_handler, self.stream_handler = init_logger(log_dir=log_dir,
                                                                           name='cifar10',
                                                                           is_train=is_train)
+    def preprocessing(self, use_whiten=True):
+        if use_whiten:
+            self._whitening()
+        else:
+            self._subtract_mean()
 
-    def whitening(self):
-        self.x_train, mean, U, S = self.preprocessing(self.x_train)
-        self.x_val = self.preprocessing(self.x_val, mean_val=mean, U_val=U, S_val=S)
-        self.x_test = self.preprocessing(self.x_test, mean_val=mean, U_val=U, S_val=S)
+    def _subtract_mean(self):
+        # Data matrix X to size [N x D]
+        x_train_2d = np.reshape(self.x_train, (self.x_train.shape[0], -1))
+        x_val_2d = np.reshape(self.x_val, (self.x_val.shape[0], -1))
+        x_test_2d = np.reshape(self.x_test, (self.x_test.shape[0], -1))
 
-    def preprocessing(self, X, mean_val=None, U_val=None, S_val=None):
-        # Input data matrix X of isze [N x D]
+        mean = np.mean(x_train_2d, axis=0)
+        self.x_train = np.reshape((x_train_2d - mean), (self.x_train.shape[0], *self.img_shape))
+        self.x_val = np.reshape((x_val_2d - mean), (self.x_val.shape[0], *self.img_shape))
+        self.x_test = np.reshape((x_test_2d - mean), (self.x_test.shape[0], *self.img_shape))
+
+    def _whitening(self):
+        self.x_train, mean, U, S = self.whiten_preprocessing(self.x_train)
+        self.x_val = self.whiten_preprocessing(self.x_val, mean_val=mean, U_val=U, S_val=S)
+        self.x_test = self.whiten_preprocessing(self.x_test, mean_val=mean, U_val=U, S_val=S)
+
+    def whiten_preprocessing(self, X, mean_val=None, U_val=None, S_val=None):
+        # Input data matrix X of size [N x D]
         X = np.reshape(X, (X.shape[0], -1))
 
         mean = None

@@ -1,6 +1,8 @@
 import os
 import logging
 import csv
+import matplotlib as mpl
+mpl.use('TkAgg')  # or whatever other backend that you want to solve Segmentation fault (core dumped)
 import matplotlib.pyplot as plt
 
 

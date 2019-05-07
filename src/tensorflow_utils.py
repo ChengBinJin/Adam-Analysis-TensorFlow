@@ -67,7 +67,12 @@ def upsampling2d(x, size=(2, 2), name='upsampling2d'):
         return tf.image.resize_nearest_neighbor(x, size=(size[0] * shape[1], size[1] * shape[2]))
 
 def flatten(x, name='flatten', data_format='channels_last', is_print=True, logger=None):
-    output = tf.layers.flatten(inputs=x, name=name, data_format=data_format)
+    try:
+        output = tf.layers.flatten(inputs=x, name=name, data_format=data_format)
+    except(RuntimeError, TypeError, NameError):
+        print('[*] Catch the flatten function Error!')
+        output = tf.contrib.layers.flatten(inputs=x, scope=name)
+
     if is_print:
         print_activations(output, logger)
     return output
