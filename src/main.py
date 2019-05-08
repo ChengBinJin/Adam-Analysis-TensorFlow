@@ -107,7 +107,7 @@ def main(_):
     if FLAGS.is_train:
         train(data, optimizer_options, dropout_options, model_dir, log_dir)
     else:
-        test(data, optimizer_options, dropout_options, model_dir)
+        test(data, optimizer_options, dropout_options, model_dir, log_dir)
 
 def train(data, optimizer_options, dropout_options, model_dir, log_dir):
     num_iters = int(round(FLAGS.epochs * data.num_train / FLAGS.batch_size))
@@ -231,7 +231,7 @@ def train(data, optimizer_options, dropout_options, model_dir, log_dir):
 
     plot_loss(log_dir, optimizer_options, dropout_options)
 
-def test(data, optimizer_options, dropout_options, model_dir):
+def test(data, optimizer_options, dropout_options, model_dir, log_dir):
     for optimizer in optimizer_options:
         for dropout in dropout_options:
             print('\nOptimizer: {}\tDropout option: {}\n'.format(optimizer, dropout))
@@ -265,6 +265,19 @@ def test(data, optimizer_options, dropout_options, model_dir):
                                       is_train=FLAGS.is_train,
                                       log_dir=None,
                                       name=mode_name)
+            elif FLAGS.model == 'cnn':
+                model = CNN(input_dim=data.img_shape,
+                            output_dim=[128, 256, 512, 1000, 10],
+                            optimizer=optimizer,
+                            use_dropout=dropout,
+                            lr=FLAGS.learning_rate,
+                            weight_decay=FLAGS.weight_decay,
+                            random_seed=FLAGS.random_seed,
+                            is_train=FLAGS.is_train,
+                            log_dir=None,
+                            name=mode_name)
+            else:
+                raise NotImplementedError
 
             # Initialize solver
             solver = Solver(sess, model)
@@ -284,6 +297,7 @@ def test(data, optimizer_options, dropout_options, model_dir):
             sess.close()
             tf.reset_default_graph()  # To release GPU memory
 
+    plot_loss(log_dir, optimizer_options, dropout_options, is_show=True)
 
 def save_model(saver, solver, sub_model_dir, mode_name, iter_time):
     saver.save(solver.sess, os.path.join(sub_model_dir, 'model'), global_step=iter_time)
@@ -304,7 +318,7 @@ def load_model(saver, solver, sub_model_dir, mode_name, is_train=False):
         return False
 
 
-def plot_loss(log_dir, optimizer_options, dropout_options):
+def plot_loss(log_dir, optimizer_options, dropout_options, is_show=False):
     optim_data, names = [], []
 
     # read csv files
@@ -329,10 +343,21 @@ def plot_loss(log_dir, optimizer_options, dropout_options):
     plt.rcParams['figure.figsize'] = (12.0, 8.0)  # set default size of plots
     plt.rcParams['image.interpolation'] = 'nearest'
 
-    plt.plot(x, optim_data)
+    colors = ['red', 'firebrick',           # SGDNesterov
+              'green', 'lime',              # Adagrad
+              'orangered', 'lightsalmon',   # RMSprop
+              'blueviolet', 'violet',       # AdaDelta
+              'dodgerblue', 'deepskyblue']  # Adam
+    line_styles = ['solid', 'dashed']
+    for idx in range(optim_data.shape[1]):
+        plt.plot(x, optim_data[:, idx], color=colors[idx], linestyle=line_styles[np.mod(idx, 2)])
+
     plt.legend(names, ncol=2, loc='upper left')
     plt.title('Optimizers with dropout')
     plt.savefig(os.path.join(log_dir, FLAGS.model + '.png'), bbox_inches='tight', dpi=600)
+
+    if is_show:  # Show plt image
+        plt.show()
 
 
 if __name__ == '__main__':

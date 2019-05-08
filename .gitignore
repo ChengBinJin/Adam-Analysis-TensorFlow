@@ -2,5 +2,5 @@ src/.idea/
 src/.idea/*.xml
 src/__pycache__
 src/logistic
-src/perceptron
+src/neural_network
 src/cnn
