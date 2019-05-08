@@ -17,14 +17,14 @@ from solver import Solver
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_string('gpu_index', '0', 'gpu index if you have multiple gpus, default: 0')
-tf.flags.DEFINE_string('model', 'cnn', 'network model in [logistic|neural_network|cnn], default: logistic')
-tf.flags.DEFINE_integer('batch_size', 128, 'batch size: default: 128')
+tf.flags.DEFINE_string('model', 'cnn', 'network model in [logistic|neural_network|cnn], default: cnn')
+tf.flags.DEFINE_integer('batch_size', 128, 'batch size for one iteration, default: 128')
 tf.flags.DEFINE_bool('is_train', True, 'training or inference mode, default: True')
 tf.flags.DEFINE_bool('is_whiten', False, 'whitening for CIFAR10 dataset, default: False')
 tf.flags.DEFINE_float('learning_rate', 1e-3, 'initial learning rate for optimizer, default: 0.001')
-tf.flags.DEFINE_float('weight_decay', 1e-4, 'weight decay for model to handle overfitting')
+tf.flags.DEFINE_float('weight_decay', 1e-4, 'weight decay for model to handle overfitting, default: 0.0001')
 tf.flags.DEFINE_integer('epochs', 200, 'number of epochs, default: 200')
-tf.flags.DEFINE_integer('print_freq', 50, 'print frequency for loss, default: 50')
+tf.flags.DEFINE_integer('print_freq', 50, 'print frequency for loss information, default: 50')
 tf.flags.DEFINE_integer('random_seed', 123, 'random seed for python')
 tf.flags.DEFINE_string('load_model', None, 'folder of saved model that you wish to continue training '
                                            '(e.g. 20190427-1109), default: None')
