@@ -59,7 +59,7 @@ This implementation uses MNIST and CIFAR10 dataset. Both datasets can be downloa
 ```  
 
 ### Training
-Use `main.py` to train the ls. Example usage:
+Use `main.py` to train the models. Example usage:
 ```
 python main.py
 ```
